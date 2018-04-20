@@ -1,0 +1,35 @@
+Javascript get value
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var check_in=$('#txtdate-in').val();
+        var check_out=$('#txtdate-out').val();
+        $('#txtdate-in').change(function () {
+            check_in=$(this).val();
+            console.log('check-in:'+ check_in);
+        });
+        $('#txtdate-out').change(function () {
+            check_out=$(this).val();
+            console.log('check-out:' + check_out);
+        });
+        var cars = [];
+        $('.check_type_room').click(function () {
+            if ($(this).prop('checked')){
+                cars.push($(this).val());
+                console.log(cars);
+            }else{
+                remove($(this).val());
+                console.log(cars);
+            }
+
+        });
+        function remove(name) {
+            var i;
+            for (i = 0; i < cars.length; i++) {
+               if(cars[i]==name){
+                   cars.splice(i, 1);
+               }
+            }
+        }
+    });
+</script>
