@@ -1,0 +1,16 @@
+<script type="text/javascript">
+        $(document).ready(function () {
+            var check_in=$("#txtdate-in").val();
+            $("#check-in").val(check_in);
+            var check_out=$("#txtdate-out").val();
+            $("#check-out").val(check_out);
+            $("#txtdate-in").change(function () {
+                check_in=$("#txtdate-in").val();
+                $("input[name=checkIn]:hidden").val(check_in);
+            });
+            $("#txtdate-out").change(function () {
+                check_out=$("#txtdate-out").val();
+                $("input[name=checkOut]:hidden").val(check_out);
+            });
+        });
+    </script>
