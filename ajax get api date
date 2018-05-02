@@ -1,0 +1,406 @@
+@extends('master')
+
+@section('title','Dashboard')
+
+@section('contents')
+
+    <div class="full-window">
+        <div class="dashboord">
+            <div class="row">
+
+
+                <div class="col-md-8">
+
+                    <div class="card">
+                        <h5 class="card-header bg-light">Temperator</h5>
+                        <div class="card-body">
+                            <canvas id="line-temperator" width="100%"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h5 class="card-header bg-light">Door Open</h5>
+                        <div class="card-body">
+                            <canvas id="bar-door" width="100%"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h5 class="card-header bg-light">Voltage</h5>
+                        <div class="card-body">
+                            <canvas id="line-voltage" width="100%"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h5 class="card-header bg-light">Motion Count</h5>
+                        <div class="card-body">
+                            <canvas id="bar-motionCount" width="100%"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h5 class="card-header bg-light">Current</h5>
+                        <div class="card-body">
+                            <canvas id="line-current" width="100%"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h5 class="card-header bg-light">Energy</h5>
+                        <div class="card-body">
+                            <canvas id="bar-energy" width="100%"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h5 class="card-header bg-light">Power</h5>
+                        <div class="card-body">
+                            <canvas id="line-power" width="100%"></canvas>
+                        </div>
+                    </div>
+
+
+                </div>
+                <div class="col-md-4 static-filter">
+                    <div class="form-group">
+                        <label for="check-in">Start Date</label>
+                        <input type="text" class="form-control pull-right datepicker" id="startDate" value="{{date("Y-m-d")}}">
+                    </div>
+                    <div class="form-group">
+                        <label for="check-in">End Date</label>
+                        <input type="text" class="form-control pull-right datepicker" id="endDate" value="{{date("Y-m-d",strtotime('tomorrow'))}}">
+                    </div>
+                    <div class="pull-right">
+                        <button type="submit" id="btn-submit" class="btn btn-success"><i class="fas fa-search"></i> Search</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+
+@stop
+@section('script')
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('.datepicker').datepicker({
+                autoclose: true,
+                format: 'yyyy-mm-dd',
+                autoclose: true,
+                todayBtn: true,
+                todayHighlight: true,
+                toggleActive:true,
+            });
+        });
+    </script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('.datepicker').datepicker({
+                autoclose: true
+            });
+            $('#btn-submit').click(function(){
+                var startDate=$('#startDate').val();
+                var endDate=$('#endDate').val();
+                console.log(startDate+endDate);
+                getData(startDate,endDate);
+            });
+            var d = new Date();
+            var startDate = d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+            var endDate = d.getFullYear() + "-" + (d.getMonth()+1) + "-" + (d.getDate()+1);
+            getData(startDate,endDate);
+        });
+        function getData(startDate,endDate){
+            console.log("http://coca.kravanh.com/api/data/{{$cooler->cooler_id}}?startDate="+startDate+"&endDate="+endDate);
+            $.ajax
+            ({
+                type: "GET",
+                url: "http://coca.kravanh.com/api/data/{{$cooler->cooler_id}}?startDate="+startDate+"&endDate="+endDate,
+                data: [],
+                success: function(data)
+                {
+                    console.log(data);
+                    setOpenDoor(data['dooropen']);
+                    setTemperator(data['temperator']);
+                    setVoltage(data['voltage']);
+                    setMotionCount(data['motioncount']);
+                    setCurrent(data['current']);
+                    setEnergy(data['energy']);
+                    setPower(data['power']);
+                }
+            });
+        }
+        function setTemperator(data){
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+
+            }
+            var myChart1 = document.getElementById("line-temperator");
+
+            Chart.defaults.global.defaultFontFamily = "Lato";
+            Chart.defaults.global.defaultFontSize = 18;
+
+            var speedData1 = {
+                labels: l,
+                datasets: [{
+                    data: d,
+                    label:'Temperator',
+                    fillColor: " ",
+                    strokeColor: "#3e95cd",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#3e95cd",
+                    pointHighlightFill: "#3e95cd",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    backgroundColor:"#0000",
+                    borderColor:"#3e95cd",
+                    borderWidth: 1,
+                }]
+            };
+
+            var chartOptions1 = {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 80,
+                        fontColor: 'black'
+                    }
+                }
+            };
+
+            var lineChart1 = new Chart(myChart1, {
+                type: 'line',
+                data: speedData1,
+                options: chartOptions1
+            });
+        }
+        function setOpenDoor(data){
+            //console.log(data);
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+
+            }
+
+            var test = new Chart(document.getElementById("bar-door"),{
+                type: 'bar',
+                data: {
+                    labels: l,
+                    datasets: [
+                        {
+                            backgroundColor: ["#3e95cd", "#3e95cd","#3e95cd","#3e95cd","#3e95cd","#3e95cd","#3e95cd"],
+                            data: d
+                        }
+                    ]
+                },
+                options: {
+                    legend: { display: false }
+                }
+            });
+            console.log(test);
+        }
+        function setVoltage(data){
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+
+            }
+            var myChart1 = document.getElementById("line-voltage");
+
+            Chart.defaults.global.defaultFontFamily = "Lato";
+            Chart.defaults.global.defaultFontSize = 18;
+            var speedData1 = {
+                labels: l,
+                datasets: [{
+                    data: d,
+                    label:'Voltage',
+                    fillColor: " ",
+                    strokeColor: "#3e95cd",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#3e95cd",
+                    pointHighlightFill: "#3e95cd",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    backgroundColor:"#0000",
+                    borderColor:"#3e95cd",
+                    borderWidth: 1,
+                }]
+            };
+
+            var chartOptions1 = {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 80,
+                        fontColor: 'black'
+                    }
+                }
+            };
+
+            var lineChart1 = new Chart(myChart1, {
+                type: 'line',
+                data: speedData1,
+                options: chartOptions1
+            });
+        }
+        function setMotionCount(data){
+            //console.log(data);
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+            }
+
+            var test = new Chart(document.getElementById("bar-motionCount"),{
+                type: 'bar',
+                data: {
+                    labels: l,
+                    datasets: [
+                        {
+                            backgroundColor: ["#3e95cd", "#3e95cd","#3e95cd","#3e95cd","#3e95cd","#3e95cd","#3e95cd"],
+                            data: d
+                        }
+                    ]
+                },
+                options: {
+                    legend: { display: false }
+                }
+            });
+            console.log(test);
+        }
+
+        function setCurrent(data){
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+
+            }
+            var myChart1 = document.getElementById("line-current");
+
+            Chart.defaults.global.defaultFontFamily = "Lato";
+            Chart.defaults.global.defaultFontSize = 18;
+            var speedData1 = {
+                labels: l,
+                datasets: [{
+                    data: d,
+                    label:'Current',
+                    fillColor: " ",
+                    strokeColor: "#3e95cd",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#3e95cd",
+                    pointHighlightFill: "#3e95cd",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    backgroundColor:"#0000",
+                    borderColor:"#3e95cd",
+                    borderWidth: 1,
+                }]
+            };
+
+            var chartOptions1 = {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 80,
+                        fontColor: 'black'
+                    }
+                }
+            };
+
+            var lineChart1 = new Chart(myChart1, {
+                type: 'line',
+                data: speedData1,
+                options: chartOptions1
+            });
+        }
+        function setEnergy(data){
+            //console.log(data);
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+            }
+
+            var test = new Chart(document.getElementById("bar-energy"),{
+                type: 'bar',
+                data: {
+                    labels: l,
+                    datasets: [
+                        {
+                            backgroundColor: ["#3e95cd", "#3e95cd","#3e95cd","#3e95cd","#3e95cd","#3e95cd","#3e95cd"],
+                            data: d
+                        }
+                    ]
+                },
+                options: {
+                    legend: { display: false }
+                }
+            });
+            console.log(test);
+        }
+
+        function setPower(data){
+            var l = [];
+            var d = [];
+
+            for(var i=0;i<data.length;i++){
+                l.push(data[i]["label"]);
+                d.push(data[i]["data"]);
+
+            }
+            var myChart1 = document.getElementById("line-power");
+
+            Chart.defaults.global.defaultFontFamily = "Lato";
+            Chart.defaults.global.defaultFontSize = 18;
+            var speedData1 = {
+                labels: l,
+                datasets: [{
+                    data: d,
+                    label:'Power',
+                    fillColor: " ",
+                    strokeColor: "#3e95cd",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#3e95cd",
+                    pointHighlightFill: "#3e95cd",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    backgroundColor:"#0000",
+                    borderColor:"#3e95cd",
+                    borderWidth: 1,
+                }]
+            };
+
+            var chartOptions1 = {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 80,
+                        fontColor: 'black'
+                    }
+                }
+            };
+
+            var lineChart1 = new Chart(myChart1, {
+                type: 'line',
+                data: speedData1,
+                options: chartOptions1
+            });
+        }
+    </script>
+
+
+@endsection
