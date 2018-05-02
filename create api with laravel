@@ -1,0 +1,295 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use App\Cooler;
+use App\LastStatus;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\User;
+use Illuminate\Support\Facades\Auth;
+use Validator;
+use App\Raw;
+use Carbon\Carbon;
+
+class PassportController extends Controller
+{
+
+    public $successStatus = 200;
+
+    /**
+     * login api
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function login($raw){
+        $name = $_GET['user'];
+        $pass = $_GET['pass'];
+        $check = User::where('name',$name)->where('password',$pass)->count();
+        $data = new Cooler();
+        if($check != 0 && $data->countFeature($raw)>13){
+            //dd($check);
+            $data->extract($raw);
+            $r = new Raw();
+            $r->cooler_id = $data->cooler_id;
+            $r->raw = $raw;
+            $r->save();
+
+            $cooler_id = $data->cooler_id;
+            $lastStatus = LastStatus::where('cooler_id',$cooler_id);
+            if($lastStatus->count()>0)
+            {
+                $status = $lastStatus->first();
+                if($status->status == 1)
+                {
+                    $lamp_cooler = 1;
+                }else
+                {
+                    $lamp_cooler = 0;
+                }
+            }else{
+                $s = new LastStatus();
+                $s->cooler_id = $cooler_id;
+                $s->status = $data->lamp_status;
+                $lamp_cooler = $data->lamp_status;
+                $s->save();
+            }
+            if(Cooler::where('cooler_id', $cooler_id)->count()>0){
+                $COOLER = Cooler::where('cooler_id', $cooler_id)->orderBy('id', 'desc')->first();
+                $COOLER->lat = $data->lat;
+                $COOLER->lon = $data->lon;
+                $COOLER->door_counter = $data->door_counter;
+                $COOLER->temperature = $data->temperature;
+                $COOLER->people_across = $data->people_across;
+                $COOLER->lamp_status = $lamp_cooler;
+                $COOLER->energy = $data->energy;
+                $COOLER->motion_alert = $data->motion_alert;
+                $COOLER->degree = $data->degree;
+                $COOLER->voltage= $data->voltage;
+                $COOLER->current= $data->current;
+                $COOLER->power=$data->power;
+                $COOLER->save();
+            }else{
+                $data->lamp_status = $lamp_cooler;
+                $data->save();
+            }
+
+
+            return 'STATUS:'.$lamp_cooler;
+        }
+        else{
+            return 'Fail';
+        }
+    }
+
+    public function status($cooler_id)
+    {
+
+        //dd("Hello");
+        $cooler = LastStatus::where('cooler_id',$cooler_id)->get();
+        $c = Cooler::where('cooler_id',$cooler_id)->first();
+        if($cooler->count()>0)
+        {
+            $status = $cooler->first();
+            $status->status = $_GET['status'];
+            $status->save();
+        }else
+        {
+            $status = new LastStatus();
+            $status->cooler_id = $cooler_id;
+            $status->status = $_GET['status'];
+
+            $status->save();
+        }
+        $c->lamp_status = $_GET['status'];
+        $c->save();
+
+        return $_GET['status'];
+
+    }
+
+    /**
+     * Register api
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required',
+            'email' => 'required|email',
+            'password' => 'required',
+            'c_password' => 'required|same:password',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error'=>$validator->errors()], 401);
+        }
+
+        $input = $request->all();
+        $input['password'] = bcrypt($input['password']);
+        $user = User::create($input);
+        $success['token'] =  $user->createToken('MyApp')->accessToken;
+        $success['name'] =  $user->name;
+
+        return response()->json(['success'=>$success], $this->successStatus);
+    }
+
+    /**
+     * details api
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getDetails()
+    {
+        $user = Auth::user();
+        return response()->json(['success' => $user], $this->successStatus);
+    }
+
+    public function getData($id){
+
+        $stStart = Carbon::parse($_GET["startDate"]);
+        $stoStart = Carbon::parse($_GET["endDate"]);
+        $stoStart->addDay();
+        $raws = Raw::where('cooler_id',$id)->where('created_at',">=",$stStart)->where('created_at',"<=",$stoStart)->get();
+
+        $temperator=array();
+        $voltage = array();
+        $current = array();
+        $power = array();
+        foreach ($raws as $item){
+
+            $data = new Cooler();
+            $data->extract($item->raw);
+            $temperator[] = array(
+                'label'=>$item->created_at->toDateTimeString(),
+                'data'=>$data->temperature
+            ) ;
+            $voltage[] = array(
+                'label'=>$item->created_at->toDateTimeString(),
+                'data'=>$data->voltage
+            );
+            $current[] = array(
+                'label'=>$item->created_at->toDateTimeString(),
+                'data'=>$data->current
+            );
+            $power[] = array(
+                'label'=>$item->created_at->toDateTimeString(),
+                'data'=>$data->power
+            );
+            //$labels_temperator[] = array_pluck($array['users'], 'id');
+
+        }
+
+        $diff = $stStart->diffInDays($stoStart, false);
+        $dooropen = array();
+        $energy= array();
+        $motioncount = array();
+        for ($i=0;$i<$diff;$i++){
+
+            $tmpStart = Carbon::parse($stStart);
+            $tmpStart->addDays($i);
+            $tmpStartPlus = Carbon::parse($tmpStart);
+            $tmpStartPlus->addDay();
+            //echo $tmpStart."-".$tmpStartPlus;
+
+            $day = Raw::where('created_at','>=',$tmpStart)->where('created_at','<',$tmpStartPlus);
+            //echo $day->count();
+            if($day->count()>1){
+                $first = $day->first();
+                $last = $day->orderBy('created_at', 'DESC')->first();
+                $exfirst = new Cooler();
+                $exfirst->extract($first->raw);
+                $exlast = new Cooler();
+                $exlast->extract($last->raw);
+                $diff_dooropen = $exlast->door_counter-$exfirst->door_counter;
+                $diff_energy = $exlast->energy-$exfirst->energy;
+                $diff_motioncount = $exlast->people_across-$exfirst->people_across;
+                $dooropen[]=array(
+                    'label'=>$tmpStart->toDateString(),
+                    'data'=>$diff_dooropen
+                );
+                $energy[]=array(
+                    'label'=>$tmpStart->toDateString(),
+                    'data'=>$diff_energy
+                );
+                $motioncount[]=array(
+                    'label'=>$tmpStart->toDateString(),
+                    'data'=>$diff_motioncount
+                );
+
+            }else{
+                $dooropen[]=array(
+                    'label'=>$tmpStart->toDateString(),
+                    'data'=>0
+                );
+                $energy[]=array(
+                    'label'=>$tmpStart->toDateString(),
+                    'data'=>0
+                );
+                $motioncount[]=array(
+                    'label'=>$tmpStart->toDateString(),
+                    'data'=>0
+                );
+
+            }
+
+
+        }
+        $result = array(
+            'temperator'=>$temperator,
+            'voltage'=>$voltage,
+            'current'=>$current,
+            'power'=>$power,
+            'dooropen'=>$dooropen,
+            'energy'=>$energy,
+            'motioncount'=>$motioncount
+        );
+
+        return $result;
+        //return $raw;
+        $labels =  array("18-04-30 20:12" , "18-04-30 21:12","18-04-30 22:12","18-04-30 22:30","18-04-30 23:12","18-04-30 23:30");
+        $data = array(10,20,30,5,30,10,20,30,5,30);
+        $temperator = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+        $voltage = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+        $current = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+        $power = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+        $dooropen = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+        $motioncount = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+        $engergy = array(
+            "labels"=>$labels,
+            "data"=>$data
+        );
+
+        $result = array(
+            "temperator"=>$temperator,
+            "voltage"=>$voltage,
+            "current"=>$current,
+            "power"=>$power,
+            "dooropen"=>$dooropen,
+            "motioncount"=>$motioncount,
+            "engergy"=>$engergy,
+        );
+
+
+        return $result;
+    }
+}
