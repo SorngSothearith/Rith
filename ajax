@@ -1,0 +1,268 @@
+
+Archived Forum
+
+Home
+Using JQuery AJAX and php to fetch data from a mysql database
+
+Created: 8 December 2010 : by Trystan Lea
+
+This is a brief example for fetching data from a mysql database using JQuery AJAX and php. JQuery AJAX allows us to update a page's content without reloading the page:
+
+How it works
+
+First you access a content file on the server here I have called the file client.php.
+This file is downloaded to your computer and the html is displayed by your browser.
+Client.php contains javascript which is also downloaded to your computer.
+The jquery javascript then executes and creates its own request to a script on the server that has access to the mysql database. It does this using AJAX. This script in this example is php and is called api.php
+api.php executes and gets the data from the mysql database and returns it via a json string to the listening client.php script.
+The client.php script recieves this data and finally updates the html content on the page dynamically!
+You will need
+
+A LAMP (Linux-Apache-MYSQL-PHP) server or XAMP server to work with. There's loads of tutorials out there on installing LAMP on Ubuntu.
+The jquery library inserted in the same directory as the scripts below
+Download JQuery here: quick link : jquery-1.4.4.js
+1) Create a database to store variable data
+
+Create a mysql database called ajax01
+Create a table called variables with 2 fields: id and name
+Insert an example variable:
+
+
+2) Create a php script to receive http requests and fetch data from the database
+
+Create a php script called api.php on your server
+Copy and paste the example below and save it:
+<?php 
+
+  //--------------------------------------------------------------------------
+  // Example php script for fetching data from mysql database
+  //--------------------------------------------------------------------------
+  $host = "localhost";
+  $user = "root";
+  $pass = "root";
+
+  $databaseName = "ajax01";
+  $tableName = "variables";
+
+  //--------------------------------------------------------------------------
+  // 1) Connect to mysql database
+  //--------------------------------------------------------------------------
+  include 'DB.php';
+  $con = mysql_connect($host,$user,$pass);
+  $dbs = mysql_select_db($databaseName, $con);
+
+  //--------------------------------------------------------------------------
+  // 2) Query database for data
+  //--------------------------------------------------------------------------
+  $result = mysql_query("SELECT * FROM $tableName");          //query
+  $array = mysql_fetch_row($result);                          //fetch result    
+
+  //--------------------------------------------------------------------------
+  // 3) echo result as json 
+  //--------------------------------------------------------------------------
+  echo json_encode($array);
+
+?>
+3) Create a client script to fetch data from the API script using JQuery AJAX
+
+Create a html script called client.php in the same directory with the following content in it:
+<!---------------------------------------------------------------------------
+Example client script for JQUERY:AJAX -> PHP:MYSQL example
+---------------------------------------------------------------------------->
+
+<html>
+  <head>
+    <script language="javascript" type="text/javascript" src="jquery.js"></script>
+  </head>
+  <body>
+
+  <!-------------------------------------------------------------------------
+  1) Create some html content that can be accessed by jquery
+  -------------------------------------------------------------------------->
+  <h2> Client example </h2>
+  <h3>Output: </h3>
+  <div id="output">this element will be accessed by jquery and this text replaced</div>
+
+  <script id="source" language="javascript" type="text/javascript">
+
+  $(function () 
+  {
+    //-----------------------------------------------------------------------
+    // 2) Send a http request with AJAX http://api.jquery.com/jQuery.ajax/
+    //-----------------------------------------------------------------------
+    $.ajax({                                      
+      url: 'api.php',                  //the script to call to get data          
+      data: "",                        //you can insert url argumnets here to pass to api.php
+                                       //for example "id=5&parent=6"
+      dataType: 'json',                //data format      
+      success: function(data)          //on recieve of reply
+      {
+        var id = data[0];              //get id
+        var vname = data[1];           //get name
+        //--------------------------------------------------------------------
+        // 3) Update html content
+        //--------------------------------------------------------------------
+        $('#output').html("<b>id: </b>"+id+"<b> name: </b>"+vname); //Set output element html
+        //recommend reading up on jquery selectors they are awesome 
+        // http://api.jquery.com/category/selectors/
+      } 
+    });
+  }); 
+
+  </script>
+  </body>
+</html>
+4) Test it!
+
+Goto client.php in your browser, if all is well you should see the following:
+
+
+and thats it! a basic example for using jquery ajax and php for fetching data from a database.
+
+Download source files: ajax01.tar.gz
+
+If you don't see anything check that you have javascript enabled in your browser.
+
+ Guest's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by Guest (not verified) on Sat, 05/11/2011 - 11:35.
+To get info from rows other than the first row
+
+http://stackoverflow.com/questions/8019489/simple-ajax-jquery-script-how...
+
+»
+ Guest's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by Guest (not verified) on Sat, 05/11/2011 - 07:56.
+Just to make it clear for the real beginners.
+If you were wondering what DB.php was, it is the below code.
+
+//--------------------------------------------------------------------------
+// Example php script for fetching data from mysql database
+//--------------------------------------------------------------------------
+$host = "localhost";
+$user = "username";
+$pass = "userpw";
+
+$databaseName = "ajax01";
+$tableName = "variables";
+?>
+
+You should remove it from the api.php and put it in another file called DB.php
+
+Leave in the api.php file though.
+
+»
+ Matt's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by Matt (not verified) on Sat, 27/08/2011 - 08:08.
+HI,
+
+This is really a nice script. How can I display multiple rows ? I need a while in my PHP, this is doable but what to do in Jquery ?
+
+»
+ Guest's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by Guest (not verified) on Tue, 23/08/2011 - 10:26.
+use this:
+
+while($row = mysql_fetch_row($result)){
+$table_data[]= array("id=>"$row['id'],name=>$row['name']);
+}
+echo json_encode($table_data);
+
+»
+ Srini's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by Srini (not verified) on Fri, 27/05/2011 - 10:22.
+Hi,
+Interesting and a helpful post :)
+I'm a beginner in PHP and jQuery.
+I have this application which retrieves details of students from a MySQL database and displays in a tables made of
+
+.And the number of rows might change every time.
+So I need to know how to extend your code to achieve this.
+I tried getting the total number of rows using mysql_fetch_row() and run a for loop till all the rows are printed.
+But I couldn't get the row-results and number of rows from the success:function().So I also want to know how to do that.
+
+this what i have tried to just print a single row of the table.But it didn't work :(
+
+I would appreciate your help in this.
+Thanks in advance :)
+Cheers....!!!!
+
+»
+ TrystanLea's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by TrystanLea on Mon, 06/06/2011 - 13:52.
+Hello Sirini, do you think you could post up the code that you have tired. Is this what you need?
+
+  $result = result of MYSQL query
+
+ while($row = mysql_fetch_array($result))
+  {
+  }
+
+ 
+
+»
+ elf's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by elf (not verified) on Wed, 31/08/2011 - 10:21.
+:( I am also new to jquery and I am stucked with the multiple lines
+
+I am using this code in the api.php file:
+
+while($row = mysql_fetch_row($result)){
+$table_data[]= array("id"=>$row['id'],"name"=>$row['name']);
+}
+echo json_encode($table_data);
+
+----
+and the closest thing I managed to get was only one result displayed in the "client.php".
+
+If I check the "api.php" in the browser it displays the following:
+[{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value},{"id":value,"name":value}]
+
+»
+ afro360's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by afro360 (not verified) on Sun, 03/04/2011 - 04:15.
+This is cool. How can this be used to update a html table with multiple mysql records or insert the latest row into the table?
+
+»
+ Guest's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by Guest (not verified) on Sun, 13/02/2011 - 00:44.
+Hi very nice write up!
+
+It would be nice to see an example of JSON + php + ajax + FLOT graph + mysql
+
+In a way that instead of loading the whole graph every 10 seconds, it queries a mysql table, and if the value has changes from last time (ie, there is a new registry in the database) then the flot graph is updated with that point without having to load everything agian.
+
+Is it at all possible?
+
+Thanks
+
+»
+ TrystanLea's picture
+Re: Using JQuery AJAX and php to fetch data from a mysql database
+
+Submitted by TrystanLea on Tue, 15/02/2011 - 09:00.
+ Sure, yes the example here does this: http://openenergymonitor.org/emon/node/88
+
+ 
+
+»
+Open-source tools for energy monitoring and analysis. Forum has moved to: https://community.openenergymonitor.org
+
+		 
