@@ -1,0 +1,31 @@
+$.ajax({
+     type: "POST",
+     url: 'test.php',
+     data: {"type":"check"},
+     success: function(response){
+         alert(response);
+     }
+});
+if(isset($_POST['data']) && $_POST['data'] == 'check'){
+  //$_POST['data'] contain the value that you sent via ajax
+  //Do something
+  echo 'Success';
+}
+$.ajax({
+    type: "POST",
+    url: 'test.php',
+    dataType: 'json',
+    data: {"data":"check"},
+    success: function(data){
+        alert(data.value1);
+        alert(data.value2);
+    }
+ });
+ if(isset($_POST['data']) && $_POST['data'] == 'check'){
+   //Data 1
+     $data['value1'] = 'Data 1 Got Successfully';
+    //Data 2
+     $data['value2'] = 'Data 2 Got Successfully';
+     $resonse = json_encode($data);
+     echo $response;
+}
